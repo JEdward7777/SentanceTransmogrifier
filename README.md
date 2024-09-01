@@ -26,14 +26,19 @@ license: apache-2.0
 - There is a [Sentence Transmorgrifier HuggingFace space](https://huggingface.co/spaces/JEdward7777/SentenceTransmorgrifier) demoing a couple models created with Sentence Transmorgrifier.
 - A branch of the code without the trained example models is checked in at the [Sentence Transmorgrifier Github page](https://github.com/JEdward7777/SentenceTransmogrifier).
 
+# How to install the Sentence Transmorgrifier with pip?
+```sh
+pip install sentence-transmorgrifier
+```
+
 # How can I use the Sentence Transmorgrifier 
 - The project has been configured to be able to be used in two different ways.
 
 ## Shell access
-- The transmorgrify.py script can be called directly with arguments specifying an input csv file, what labels are from and to and what to save the resulting model as or to process the input csv to an output.  Here is an example:
+- The sentence_transmorgrifier.transmorgrify module can be called directly with arguments specifying an input csv file, what labels are from and to and what to save the resulting model as or to process the input csv to an output.  Here is an example:
 
 ```sh
-python transmorgrify.py \
+python -m sentence_transmorgrifier.transmorgrify \
     --train --in_csv ./examples/phonetic/phonetic.csv \
      --a_header English \
      --b_header Phonetic\
@@ -53,7 +58,7 @@ python transmorgrify.py \
  - `--train_percentage` If you are going to use the same file for testing as well as the training, giving a train percentage will only use the percentage specified for training.
 
 ```sh
-python transmorgrify.py \
+python -m sentence_transmorgrifier.transmorgrify \
     --execute \
     --in_csv ./examples/phonetic/phonetic.csv \
     --a_header English \
@@ -76,7 +81,7 @@ python transmorgrify.py \
  - `--train_percentage` If you are going to use the same file for testing as well as the training, give the same train percentage as was given for training and the execution will only use the remaining data not used for training.
 
  ## Python object access
- - If instead of wanting to run this from the command line you want to use this in a python app, you can import the Transmorgrifier from the transmorgrify.py file into your app and use the methods on it.  This model has the following functions.
+ - If instead of wanting to run this from the command line you want to use this in a python app, you can import the Transmorgrifier from the sentence_transmorgrifier module into your app and use the methods on it.
   - `train`
   ```
 Train the Transmorgrifier model.  This does not save it to disk but just trains in memory.
@@ -116,13 +121,13 @@ from_sentences -- Something iterable which returns strings.
 - Here is an example of using object access to train a model
 ```python
 import pandas as pd
-import transmorgrify
+from sentence_transmorgrifier.transmorgrify import Transmorgrifier
 
 #load training data
 train_data = pd.read_csv( "training.csv" )
 
 #do the training
-my_model = transmorgrify.Transmorgrifier()
+my_model = Transmorgrifier()
 my_model.train( 
     from_sentences=train_data["from_header"], 
     to_sentences=train_data["to_header"],
@@ -135,13 +140,13 @@ my_model.save( "my_model.tm" )
 - Here is an example of using object access to use a model
 ```python
 import pandas as pd
-import transmorgrify
+from sentence_transmorgrifier.transmorgrify import Transmorgrifier
 
 #load inference data
 inference_data = pd.read_csv( "inference.csv" )
 
 #Load the model
-my_model = transmorgrify.Transmorgrifier()
+my_model = Transmorgrifier()
 my_model.load( "my_model.tm" )
 
 #do the inference

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sentence_transmorgrifier"
+version = "0.0.1"
+authors = [
+  { name="Joshua Lansford", email="Joshua@Lansfords.com" },
+]
+description = "The Sentence Transmorgrifier is a framework to make text to text conversion models which uses a categorical gradient boost library, catboost, as its back end."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/JEdward7777/SentenceTransmogrifier"
+Issues = "https://github.com/JEdward7777/SentenceTransmogrifier/issues"

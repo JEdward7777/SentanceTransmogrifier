@@ -157,12 +157,21 @@ class Transmorgrifier:
             inp.change( gradio_function, inputs=[inp], outputs=[out] )
         demo.launch( share=share )
 
+# def _list_trace( trace ):
+#     if trace.parent is None:
+#         result = [trace]
+#     else:
+#         result = _list_trace( trace.parent )
+#         result.append( trace )
+#     return result
+
 def _list_trace( trace ):
-    if trace.parent is None:
-        result = [trace]
-    else:
-        result = _list_trace( trace.parent )
+    result = []
+    while trace is not None:
         result.append( trace )
+        trace = trace.parent
+    #now reverse it
+    result.reverse()
     return result
 
 class _edit_trace_hop():
@@ -172,6 +181,7 @@ class _edit_trace_hop():
     from_row_i = None
     to_column_i = None
     action = None
+    repeat_insert_delete_count = None
 
     def __str__( self ):
         if self.action == START:
@@ -186,6 +196,22 @@ class _edit_trace_hop():
 
     def __repr__( self ):
         return self.__str__()
+
+def _diffs_to_str( current_node ):
+    result = ""
+    if current_node.parent is not None:
+        result = _diffs_to_str( current_node.parent ) + " "
+    
+    if current_node.action == START:
+        result += "s"
+    elif current_node.action == MATCH:
+        result +=  f"m-{current_node.char}"
+    elif current_node.action == INSERT_TO:
+        result +=   f"i-{current_node.char}"
+    elif current_node.action == DELETE_FROM:
+        result +=   f"d-{current_node.char}"
+
+    return result
 
 def _trace_edits( from_sentence, to_sentence, print_debug=False ):
     #iterating from will be the rows down the left side.
@@ -213,6 +239,7 @@ def _trace_edits( from_sentence, to_sentence, print_debug=False ):
                 best_option.from_row_i = from_row_i
                 best_option.to_column_i = to_column_i
                 best_option.action = START
+                best_option.repeat_insert_delete_count = 0
 
             #check left
             if to_column_i > 0:
@@ -224,10 +251,21 @@ def _trace_edits( from_sentence, to_sentence, print_debug=False ):
                     best_option.from_row_i = from_row_i
                     best_option.to_column_i = to_column_i
                     best_option.action = INSERT_TO
+                    if best_option.action == best_option.parent.action:
+                        best_option.repeat_insert_delete_count = best_option.parent.repeat_insert_delete_count + 1
+                    else:
+                        best_option.repeat_insert_delete_count = best_option.parent.repeat_insert_delete_count
             
             #check up
             if from_row_i > 0:
-                if best_option is None or last_row[to_column_i].edit_distance + 1 < best_option.edit_distance:
+                delete_option_repeat_count = last_row[to_column_i].repeat_insert_delete_count + (1 if last_row[to_column_i].action == DELETE_FROM else 0)
+                
+
+                if (best_option is None or last_row[to_column_i].edit_distance + 1 < best_option.edit_distance or
+                #split up inserts so that we can zig zag through a larger block replace instead of doing all the inserts and then all the deletes.
+                #by checking if there are more then one insert in a row, and if so, prefer a delete if it has the same edit distance.
+                        (last_row[to_column_i].edit_distance + 1 == best_option.edit_distance  and #otherwise the same,
+                         delete_option_repeat_count < best_option.repeat_insert_delete_count)):
                     best_option = _edit_trace_hop()
                     best_option.parent = last_row[to_column_i]
                     best_option.edit_distance = best_option.parent.edit_distance + 1
@@ -235,6 +273,7 @@ def _trace_edits( from_sentence, to_sentence, print_debug=False ):
                     best_option.from_row_i = from_row_i
                     best_option.to_column_i = to_column_i
                     best_option.action = DELETE_FROM
+                    best_option.repeat_insert_delete_count = delete_option_repeat_count
 
                 #check match
                 if to_column_i > 0:
@@ -247,6 +286,7 @@ def _trace_edits( from_sentence, to_sentence, print_debug=False ):
                             best_option.from_row_i = from_row_i
                             best_option.to_column_i = to_column_i
                             best_option.action = MATCH
+                            best_option.repeat_insert_delete_count = best_option.parent.repeat_insert_delete_count
 
             if best_option is None: raise Exception( "Shouldn't end up with best_option being None" )
             current_row.append(best_option)
@@ -255,19 +295,7 @@ def _trace_edits( from_sentence, to_sentence, print_debug=False ):
         current_row = []
 
     if print_debug:
-        def print_diffs( current_node ):
-            if current_node.parent is not None:
-                print_diffs( current_node.parent )
-            
-            if current_node.action == START:
-                print( "start" )
-            elif current_node.action == MATCH:
-                print( f"match {current_node.char}" )
-            elif current_node.action == INSERT_TO:
-                print( f"insert {current_node.char}" )
-            elif current_node.action == DELETE_FROM:
-                print( f"del {current_node.char}" )
-        print_diffs( last_row[-1] )
+        print( _diffs_to_str( last_row[-1] ) )
     return last_row[-1]
 
 
@@ -675,3 +703,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    #_trace_edits( "pot22q22ato", "pot3333qato", True )
